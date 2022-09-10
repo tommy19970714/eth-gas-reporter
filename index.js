@@ -9,6 +9,7 @@ const TransactionWatcher = require("./lib/transactionWatcher");
 const GasTable = require("./lib/gasTable");
 const SyncRequest = require("./lib/syncRequest");
 const mochaStats = require("./lib/mochaStats");
+const _ = require("lodash");
 
 /**
  * Based on the Mocha 'Spec' reporter. Watches an Ethereum test suite run
@@ -60,19 +61,13 @@ function Gas(runner, options) {
 
   runner.on("suite", suite => {
     ++indents;
-    log(color("suite", "%s%s"), indent(), suite.title);
   });
 
   runner.on("suite end", () => {
     --indents;
-    if (indents === 1) {
-      log();
-    }
   });
 
   runner.on("pending", test => {
-    let fmt = indent() + color("pending", "  - %s");
-    log(fmt, test.title);
   });
 
   runner.on("test", () => {
@@ -131,19 +126,18 @@ function Gas(runner, options) {
         color("pass", " %s") +
         consumptionString;
     }
-    log.apply(null, [fmt, ...fmtArgs]);
   });
 
   runner.on("fail", test => {
     failed = true;
-    let fmt = indent() + color("fail", "  %d) %s");
-    log();
-    log(fmt, ++n, test.title);
   });
 
   runner.on("end", () => {
-    table.generate(watch.data);
-    self.epilogue();
+    _.forEach(watch.data.methods, (data, methodId) => {
+      const total = data.gasData.reduce((acc, datum) => acc + datum, 0);
+      const average = Math.round(total / data.gasData.length);
+      if (average) log(average)
+    });
   });
 }
 
